@@ -5,10 +5,8 @@ name: sanitization-full-tree
 # Because the PR gate (sanitization.yml) scans only a PR's own diff, a leak can in
 # principle reach the default branch in a file no single PR touched: a rename, a
 # merge, an out-of-band edit, or content that predates the gate. This lane
-# re-scans the ENTIRE tree with both layers, fail-closed.
-#
-# Same two-step shape as the PR gate, for the same reason: a red step names its
-# own cause instead of leaving you guessing whether the key broke or a leak landed.
+# re-scans the ENTIRE tree with both layers, fail-closed, using the canonical
+# gate in cyborg-garden/swarm-map (same pin as sanitization.yml).
 #
 # ON-DEMAND ONLY, for now — and that is a deliberate, temporary state:
 #   The deterministic layer has been verified clean across the whole tree. The
@@ -30,24 +28,8 @@ permissions:
 
 jobs:
   sanitize-full-tree:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install deps (semantic layer + self-tests)
-        run: pip install pytest
-
-      - name: Scanner self-tests (deterministic, no key needed)
-        run: python -m pytest tests/test_check_sanitization.py -q
-
-      - name: Full-tree secrets & PII gate (deterministic — always enforced, no key needed)
-        run: python scripts/check_sanitization.py --all --deterministic-only
-
-      - name: Full-tree particulars gate (semantic — needs OPENROUTER_API_KEY, fails closed)
-        env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-        run: python scripts/check_sanitization.py --all --require-semantic
+    uses: cyborg-garden/swarm-map/.github/workflows/sanitization-gate.yml@sanitization-gate-v1.0.0
+    with:
+      mode: full-tree
+    secrets:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}

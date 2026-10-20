@@ -7,6 +7,12 @@ an automated contribution (an agent opening a PR) cannot land such material.
 
 Two layers. Both must pass. Neither may fail quietly.
 
+The gate is **canonical**: one script and one reusable workflow, in
+[`cyborg-garden/swarm-map`](https://github.com/cyborg-garden/swarm-map/blob/main/docs/sanitization-gate.md).
+This repo keeps only `sanitize.config.json` (what a particular means here), the
+caller workflows, and `scripts/check_sanitization.py` — a launcher that fetches the
+canonical script at the pinned tag, not a copy.
+
 ## Layer 1 — secrets and PII (deterministic)
 
 Regex detection of credential and PII shapes: provider API keys and tokens,
@@ -92,8 +98,11 @@ point — take it to a maintainer and record the outcome.
 
 ## Adding a detector
 
-New detectors go in `_DETERMINISTIC_PATTERNS` in `scripts/check_sanitization.py`,
-with a test in `tests/test_check_sanitization.py` that fails without them. Two
+Detectors live in the canonical script in `cyborg-garden/swarm-map`
+(`_DETERMINISTIC_PATTERNS` in `scripts/check_sanitization.py` there), with a test
+in its `scripts/test_check_sanitization.py` that fails without them. Change it
+there, tag a new `sanitization-gate-v*` release, then bump this repo's pin in
+`.github/workflows/sanitization*.yml` and `GATE_TAG` in the launcher together. Two
 house rules:
 
 - The scanner module is itself scanned. Never write a literal sample of anything
