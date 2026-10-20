@@ -7,6 +7,12 @@ an automated contribution (an agent opening a PR) cannot land such material.
 
 Two layers. Both must pass. Neither may fail quietly.
 
+The gate is **canonical**: one script and one reusable workflow, in
+[`cyborg-garden/swarm-map`](https://github.com/cyborg-garden/swarm-map/blob/main/docs/sanitization-gate.md).
+This repo keeps only `sanitize.config.json` (what a particular means here), the
+caller workflows, and `scripts/check_sanitization.py` — a launcher that fetches the
+canonical script at the pinned tag, not a copy.
+
 ## Layer 1 — secrets and PII (deterministic)
 
 Regex detection of credential and PII shapes: provider API keys and tokens,
@@ -79,11 +85,12 @@ In order of preference:
 2. **Generalize the content.** Replace a real name, host, or identifier with a
    placeholder, or describe the shape instead of writing a sample. Reserved
    documentation domains and ranges exist for this.
-3. **Allowlist it — only if the value cannot possibly be real.** Add a substring
-   of the detected value to `deterministic.allow_substrings` in
-   `sanitize.config.json`, and say in that file's comment why the value is not
-   real. Entries are matched against the detected value, not the whole line, so
-   exempting one documentation address cannot quietly exempt a real one beside it.
+3. **Allowlist it — only if the value cannot possibly be real.** Add the exact
+   detected value to `deterministic.allow_substrings` in `sanitize.config.json`,
+   and say in that file's comment why the value is not real. Entries are exact
+   matches, never substrings (the only wider forms are an email domain and an
+   IPv4 /24 prefix). Config changes made in a PR apply only after it merges: the
+   gate scans every PR with the base branch's config.
 
 What not to do: widen a pattern, disable a layer, or drop `--require-semantic` to
 get a green check. A gate that is edited until it passes is not a gate. If the
@@ -92,8 +99,11 @@ point — take it to a maintainer and record the outcome.
 
 ## Adding a detector
 
-New detectors go in `_DETERMINISTIC_PATTERNS` in `scripts/check_sanitization.py`,
-with a test in `tests/test_check_sanitization.py` that fails without them. Two
+Detectors live in the canonical script in `cyborg-garden/swarm-map`
+(`_DETERMINISTIC_PATTERNS` in `scripts/check_sanitization.py` there), with a test
+in its `scripts/test_check_sanitization.py` that fails without them. Change it
+there, tag a new `sanitization-gate-v*` release, then bump this repo's pin in
+`.github/workflows/sanitization*.yml` and `GATE_TAG` in the launcher together. Two
 house rules:
 
 - The scanner module is itself scanned. Never write a literal sample of anything
