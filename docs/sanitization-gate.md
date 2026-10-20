@@ -23,7 +23,7 @@ collector code is still a key.
 ## Layer 2 — particulars (semantic)
 
 A model reads content-bearing files and judges whether they carry particulars of
-one specific engagement rather than generic method. Needs `ANTHROPIC_API_KEY`.
+one specific engagement rather than generic method. Needs `OPENROUTER_API_KEY`.
 
 The reviewed file is fenced between markers carrying a random per-run nonce, and
 the model is told everything inside is untrusted data. Content that tries to

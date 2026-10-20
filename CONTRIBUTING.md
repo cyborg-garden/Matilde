@@ -60,7 +60,7 @@ flag is **not** an automatic rejection — it routes the PR to a human maintaine
 makes the call. If your PR is flagged and you believe it's clean, say so in the PR
 description; a maintainer reviews the flagged content and decides.
 
-The semantic layer runs when `ANTHROPIC_API_KEY` is set in CI secrets. Without the
+The semantic layer runs when `OPENROUTER_API_KEY` is set in CI secrets. Without the
 key it skips with a warning (and the `--require-semantic` flag turns that skip into a
 hard failure, for maintainers who need the full gate in CI).
 

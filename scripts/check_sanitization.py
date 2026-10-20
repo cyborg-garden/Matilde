@@ -9,7 +9,7 @@ offline. Run it alone with ``--deterministic-only``.
 Layer 2 (semantic): sends content-bearing files (skills, souls, docs, prose) to
 an LLM that flags operator/engagement *particulars* — names, case IDs, hostnames,
 anything that would make a "generic" artifact actually specific to one operator.
-Requires ANTHROPIC_API_KEY; skipped with a loud warning if unset (so local runs
+Requires OPENROUTER_API_KEY; skipped with a loud warning if unset (so local runs
 work), REQUIRED in CI (pass --require-semantic to fail when the key is missing).
 A key that is present but unusable — malformed, revoked, rate-limited, or the API
 unreachable — is treated the same as unset: the layer "did not run", and
@@ -57,7 +57,7 @@ def load_config(root="."):
             "package_kind": "SHARED, public agent package",
             "sensitive_prefixes": ["hermes-skill/", "hermes-plugin/", "docker/SOUL", "docs/"],
             "semantic": {"domain_noun": "operational engagement", "flag_examples": [],
-                         "do_not_flag_examples": [], "model": "claude-opus-4-8"},
+                         "do_not_flag_examples": [], "model": "moonshotai/kimi-k3"},
             "deterministic": {"enabled": True, "allow_substrings": []},
         }
 
@@ -297,16 +297,54 @@ def api_key():
     A key pasted into a CI secret or a .env very often carries a trailing
     newline. An API key never legitimately contains surrounding whitespace, but
     an un-stripped one is sent as an HTTP header value and blows up deep in the
-    transport as `LocalProtocolError: Illegal header value` — a traceback that
+    transport as an invalid-header-value error — a traceback that
     says nothing about the real cause. Strip once, here, so both the
     is-it-present check and the client construction agree.
     """
-    return os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    return os.environ.get("OPENROUTER_API_KEY", "").strip()
+
+
+DEFAULT_MODEL = "moonshotai/kimi-k3"
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+
+
+class _OpenRouterClient:
+    """Minimal OpenRouter chat client exposing the ``messages.create`` shape
+    ``assess`` uses (``.content[0].text`` on the reply), so tests can keep
+    injecting a fake. Plain urllib with an explicit User-Agent: Cloudflare
+    rejects urllib's default one. Stdlib only, so no SDK dependency."""
+
+    def __init__(self, key):
+        self._key = key
+        self.messages = self
+
+    def create(self, model, max_tokens, system, messages):
+        import urllib.request
+        body = json.dumps({
+            "model": model,
+            "max_tokens": max_tokens,
+            "messages": [{"role": "system", "content": system}, *messages],
+        }).encode()
+        req = urllib.request.Request(OPENROUTER_URL, data=body, headers={
+            "Authorization": f"Bearer {self._key}",
+            "Content-Type": "application/json",
+            "User-Agent": "cyborg-garden-sanitization/1.0",
+        })
+        with urllib.request.urlopen(req, timeout=180) as resp:
+            data = json.load(resp)
+        text = (data.get("choices") or [{}])[0].get("message", {}).get("content") or ""
+        block = type("B", (), {"text": text})()
+        return type("M", (), {"content": [block]})()
+
+
+def semantic_model(cfg):
+    """SANITIZE_MODEL env overrides the config's model; DEFAULT_MODEL backstops both."""
+    return (os.environ.get("SANITIZE_MODEL", "").strip()
+            or cfg.get("semantic", {}).get("model", DEFAULT_MODEL))
 
 
 def _make_client():  # pragma: no cover - thin wrapper, mocked in tests
-    import anthropic
-    return anthropic.Anthropic(api_key=api_key())
+    return _OpenRouterClient(api_key())
 
 
 def _report_det_hits(det_hits):
@@ -327,9 +365,9 @@ def _report_det_hits(det_hits):
 def _describe_failure(exc):
     """Render an exception plus its cause chain, with a hint where we can give one.
 
-    The Anthropic SDK wraps transport problems in `APIConnectionError`, whose own
-    message is the useless string "Connection error." The actionable detail —
-    e.g. `LocalProtocolError: Illegal header value` — is only on `__cause__`, so
+    urllib wraps transport problems in `URLError`, and other layers re-raise
+    with a terse outer message; the actionable detail (e.g. an invalid header
+    value from a key with an embedded newline) is often only on `__cause__`, so
     printing just the outer exception hides the one fact you need.
     """
     chain, seen, cur = [], set(), exc
@@ -343,13 +381,13 @@ def _describe_failure(exc):
         cur = cur.__cause__ or cur.__context__
     detail = " <- caused by ".join(chain)
 
-    if "Illegal header value" in detail:
+    if "Illegal header value" in detail or "Invalid header value" in detail:
         detail += (
             "\n  HINT: the API key contains a character that is illegal in an HTTP "
             "header — stray whitespace, a trailing newline, or a newline in the "
             "middle from a key pasted across two lines. Surrounding whitespace is "
             "stripped automatically, so an interior newline is the likely cause: "
-            "re-enter the ANTHROPIC_API_KEY secret as a single unbroken line."
+            "re-enter the OPENROUTER_API_KEY secret as a single unbroken line."
         )
     elif "no verdict object in model reply" in detail:
         detail += (
@@ -357,7 +395,8 @@ def _describe_failure(exc):
             "This is a parse failure, not a leak — capture the reply above and fix "
             "the extractor rather than relaxing the gate."
         )
-    elif "APIStatusError" in detail or "authentication" in detail.lower():
+    elif ("HTTPError" in detail or "APIStatusError" in detail
+          or "authentication" in detail.lower()):
         detail += ("\n  HINT: the key was well-formed but rejected. Check that it is "
                    "current and has access to the configured model.")
     return detail
@@ -438,7 +477,7 @@ def main(argv, root=".", client_factory=_make_client):
     elif sensitive:
         if api_key():
             system_prompt = build_system_prompt(cfg)
-            model = cfg.get("semantic", {}).get("model", "claude-opus-4-8")
+            model = semantic_model(cfg)
             # A key being present is not the same as the semantic layer working:
             # the key can be malformed, revoked, or rate-limited, and the model
             # can be unreachable. Treat that as "the layer did not run" and let
@@ -473,7 +512,7 @@ def main(argv, root=".", client_factory=_make_client):
                       f"particulars were NOT checked.")
         elif require_semantic:
             _report_det_hits(det_hits)
-            print(f"ERROR: --require-semantic set but ANTHROPIC_API_KEY is missing, "
+            print(f"ERROR: --require-semantic set but OPENROUTER_API_KEY is missing, "
                   f"and {len(sensitive)} content-bearing file(s) need the semantic layer. "
                   f"Failing closed rather than reporting a half-checked diff.")
             if det_hits:
@@ -481,7 +520,7 @@ def main(argv, root=".", client_factory=_make_client):
                       "fix those hits regardless of the semantic layer.")
             return 2
         else:
-            print(f"WARNING: ANTHROPIC_API_KEY unset — semantic layer SKIPPED for "
+            print(f"WARNING: OPENROUTER_API_KEY unset — semantic layer SKIPPED for "
                   f"{len(sensitive)} content-bearing file(s). The deterministic layer "
                   f"still ran, so secrets/PII are covered, but domain particulars are "
                   f"NOT. This result is not a full pass. Set the key, or pass "

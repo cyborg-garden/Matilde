@@ -64,7 +64,7 @@ if the technique only worked once, it hasn't earned generalization yet.
      deterministic check is a stop, not a discussion.
    - **Layer 2 — semantic** (use-case particulars, per your
      `sanitize.config.json`). Advisory → routes to human review. Skipped with a
-     warning if no `ANTHROPIC_API_KEY` is present; CI can force it with
+     warning if no `OPENROUTER_API_KEY` is present; CI can force it with
      `--require-semantic`.
 
 4. **Review and merge.** A maintainer review is the discipline. If you're a solo

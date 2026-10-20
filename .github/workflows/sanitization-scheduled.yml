@@ -39,7 +39,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install deps (semantic layer + self-tests)
-        run: pip install anthropic pytest
+        run: pip install pytest
 
       - name: Scanner self-tests (deterministic, no key needed)
         run: python -m pytest tests/test_check_sanitization.py -q
@@ -47,7 +47,7 @@ jobs:
       - name: Full-tree secrets & PII gate (deterministic — always enforced, no key needed)
         run: python scripts/check_sanitization.py --all --deterministic-only
 
-      - name: Full-tree particulars gate (semantic — needs ANTHROPIC_API_KEY, fails closed)
+      - name: Full-tree particulars gate (semantic — needs OPENROUTER_API_KEY, fails closed)
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: python scripts/check_sanitization.py --all --require-semantic
