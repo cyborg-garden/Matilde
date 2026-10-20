@@ -34,7 +34,7 @@
   },
 
   "deterministic": {
-    "$comment": "The credential/PII layer runs with NO external dependencies and FAILS CLOSED. These patterns are conservative defaults; add your own. Allowlist a false positive by putting a substring of the MATCHED VALUE in 'allow_substrings' — it is matched against the detected value, not the whole line.",
+    "$comment": "The credential/PII layer runs with NO external dependencies and FAILS CLOSED. These patterns are conservative defaults; add your own. Allowlist a false positive by putting the EXACT detected value in 'allow_substrings' (despite the key's name, entries are never substrings). The only wider forms: an email domain such as 'example.com' excuses addresses at exactly that domain, and a three-octet prefix such as '198.51.100.' excuses that /24. Layer 1 cannot be switched off, and skip_paths may name only test-fixture paths.",
     "enabled": true,
     "allow_substrings": [
       "noreply@anthropic.com",

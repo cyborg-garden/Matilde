@@ -85,11 +85,12 @@ In order of preference:
 2. **Generalize the content.** Replace a real name, host, or identifier with a
    placeholder, or describe the shape instead of writing a sample. Reserved
    documentation domains and ranges exist for this.
-3. **Allowlist it — only if the value cannot possibly be real.** Add a substring
-   of the detected value to `deterministic.allow_substrings` in
-   `sanitize.config.json`, and say in that file's comment why the value is not
-   real. Entries are matched against the detected value, not the whole line, so
-   exempting one documentation address cannot quietly exempt a real one beside it.
+3. **Allowlist it — only if the value cannot possibly be real.** Add the exact
+   detected value to `deterministic.allow_substrings` in `sanitize.config.json`,
+   and say in that file's comment why the value is not real. Entries are exact
+   matches, never substrings (the only wider forms are an email domain and an
+   IPv4 /24 prefix). Config changes made in a PR apply only after it merges: the
+   gate scans every PR with the base branch's config.
 
 What not to do: widen a pattern, disable a layer, or drop `--require-semantic` to
 get a green check. A gate that is edited until it passes is not a gate. If the
