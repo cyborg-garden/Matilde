@@ -29,6 +29,9 @@ permissions:
 
 jobs:
   sanitize:
+    # The pinned tag MUST exist in cyborg-garden/swarm-map. If it does not, this
+    # job fails at 0s with no check shown on the PR, which can look green. Keep
+    # this repo's sanitization check REQUIRED on main so that case blocks merges.
     uses: cyborg-garden/swarm-map/.github/workflows/sanitization-gate.yml@sanitization-gate-v1.0.0
     with:
       mode: pr
