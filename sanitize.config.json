@@ -30,7 +30,7 @@
       "PUBLISHED paper titles, author names, DOIs, or retraction examples used illustratively or as test fixtures (these are public record)",
       "public dataset identifiers used as documentation examples"
     ],
-    "model": "claude-opus-4-8"
+    "model": "moonshotai/kimi-k3"
   },
 
   "deterministic": {

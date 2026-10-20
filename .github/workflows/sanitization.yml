@@ -9,7 +9,7 @@ name: sanitization
 #   1. Secrets & PII (deterministic). No credential, no network. Runs on EVERY
 #      PR including forks. A red here means "a secret or PII is in the diff".
 #
-#   2. Particulars (semantic). Needs ANTHROPIC_API_KEY and runs with
+#   2. Particulars (semantic). Needs OPENROUTER_API_KEY and runs with
 #      --require-semantic, so it FAILS CLOSED: if the key is missing, malformed,
 #      revoked, rate-limited, or the API is unreachable, the step exits 2 rather
 #      than printing a warning and passing. A red here means "the semantic layer
@@ -30,7 +30,7 @@ name: sanitization
 #   `pull_request_target`, which runs with repository secrets in a context where
 #   the PR's own code must NOT be trusted. Done carelessly — e.g. checking out
 #   the PR head and then executing anything from it — that hands
-#   ANTHROPIC_API_KEY to arbitrary attacker-supplied code. That is a deliberate
+#   OPENROUTER_API_KEY to arbitrary attacker-supplied code. That is a deliberate
 #   maintainer decision, not a default, and it is intentionally NOT enabled here.
 
 on:
@@ -53,7 +53,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install deps (semantic layer + self-tests)
-        run: pip install anthropic pytest
+        run: pip install pytest
 
       # The gate's own tests run BEFORE the gate. A scanner that cannot detect
       # its own fixtures must never get to report a repo "clean".
@@ -77,10 +77,10 @@ jobs:
           xargs -r -d '\n' python scripts/check_sanitization.py --deterministic-only < changed.txt
 
       # ---- Step 2: same-repo PR — the key is available, so demand the layer --
-      - name: Particulars gate (semantic — needs ANTHROPIC_API_KEY, fails closed)
+      - name: Particulars gate (semantic — needs OPENROUTER_API_KEY, fails closed)
         if: github.event.pull_request.head.repo.full_name == github.repository
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           set -euo pipefail
           xargs -r -d '\n' python scripts/check_sanitization.py --require-semantic < changed.txt
@@ -89,4 +89,4 @@ jobs:
       - name: Particulars gate NOT RUN (fork PR — no secret available)
         if: github.event.pull_request.head.repo.full_name != github.repository
         run: |
-          echo "::warning title=Partial sanitization coverage::This PR is from a fork, so ANTHROPIC_API_KEY is not available to the run and the SEMANTIC layer did not execute. Secrets and PII were checked; domain particulars were NOT. A maintainer must review this diff for particulars by hand before merging."
+          echo "::warning title=Partial sanitization coverage::This PR is from a fork, so OPENROUTER_API_KEY is not available to the run and the SEMANTIC layer did not execute. Secrets and PII were checked; domain particulars were NOT. A maintainer must review this diff for particulars by hand before merging."
