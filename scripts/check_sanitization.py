@@ -18,7 +18,7 @@ import runpy
 import sys
 import urllib.request
 
-GATE_TAG = "sanitization-gate-v1.0.1"
+GATE_TAG = "sanitization-gate-v1.1.0"
 GATE_URL = ("https://raw.githubusercontent.com/cyborg-garden/swarm-map/"
             f"{GATE_TAG}/scripts/check_sanitization.py")
 
