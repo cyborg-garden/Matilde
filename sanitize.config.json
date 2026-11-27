@@ -28,9 +28,7 @@
       "generic methodology (\"how to verify a citation\", \"how to grade a source\")",
       "tool, API, library, standard, or service names (Crossref, OpenAlex, DataCite, GROBID, BIDS, Quarto, Pandoc)",
       "PUBLISHED paper titles, author names, DOIs, or retraction examples used illustratively or as test fixtures (these are public record)",
-      "public dataset identifiers used as documentation examples",
-      "this package's OWN identity: the maintaining org (Cyborg Garden, GitHub org cyborg-garden; former names NimbleCo, NimbleCoOrg, NimbleCoAI), this repository's own name (Matilde), and its plugin and skill names (matilde_plugin, matilde). The package is published BY that org; its own name is not a study particular",
-      "the runtime this package targets by design (hermes-agent-mt, Hermes Swarm Map / HSM) and its canonical repo URL: a documented dependency, not a leaked particular"
+      "public dataset identifiers used as documentation examples"
     ],
     "model": "moonshotai/kimi-k3"
   },
